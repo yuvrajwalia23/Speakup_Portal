@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="dashboard-container">
+    <header class="dashboard-header">
+      <h2>User Dashboard</h2>
+      <div class="user-info">
+        <p>Welcome, <span id="username"></span></p>
+        <button onclick="logout()" class="logout-btn">Logout</button>
+      </div>
+    </header>
+
+    <section class="form-section">
+      <h3>Submit a Complaint</h3>
+      <form id="complaintForm">
+        <input type="text" id="title" placeholder="Title" required />
+        <textarea id="description" placeholder="Description" required></textarea>
+        <button type="submit">Submit</button>
+      </form>
+    </section>
+
+    <section class="complaint-section">
+      <h3>Your Complaints</h3>
+      <div id="complaintList"></div>
+    </section>
+  </div>
+  
+  <script>
+    const user = JSON.parse(sessionStorage.getItem("user"));
+    if (!user) {
+      window.location.href = "login.html";
+    } else {
+      document.getElementById("username").innerText = user.name;
+    }
+
+    document.getElementById("complaintForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const complaint = {
+        title: document.getElementById("title").value,
+        description: document.getElementById("description").value
+      };
+
+      fetch(`http://localhost:8080/api/complaints/${user.id}`, {
+        method: "POST",
+        headers: { 
+              "Authorization": "Bearer " + sessionStorage.getItem("token"),
+              "Content-Type": "application/json" },
+        body: JSON.stringify(complaint),
+      })
+        .then(res => res.json())
+        .then(() => {
+          alert("Complaint submitted successfully");
+          loadComplaints();
+        });
+    });
+
+    function loadComplaints() {
+      fetch(`http://localhost:8080/api/complaints/user/${user.id}`, {
+        headers: { 
+              "Authorization": "Bearer " + sessionStorage.getItem("token"),
+              "Content-Type": "application/json" }
+      })
+        .then(res => res.json())
+        .then(complaints => {
+          const container = document.getElementById("complaintList");
+          container.innerHTML = "";
+          complaints.forEach(c => {
+            container.innerHTML += `
+              <div style="border:1px solid #ccc; padding:10px; margin:5px;">
+                <h4>${c.title}</h4>
+                <p>${c.description}</p>
+                <small>Status: ${c.status}</small>
+              </div>`;
+          });
+        });
+    }
+
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "index.html";
+    }
+
+    loadComplaints();
+  </script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="dashboard-container">
+    <header class="dashboard-header">
+      <h2>Admin Dashboard</h2>
+       <div class="user-info">
+        <p>Welcome, <span id="username"></span></p>
+        <button onclick="logout()" class="logout-btn">Logout</button>
+      </div>
+    </header>
+
+    <section class="complaint-section">
+      <h3>All Complaints</h3>
+      <div id="complaintList"></div>
+    </section>
+  </div>
+
+  <script>
+    const user = JSON.parse(sessionStorage.getItem("user"));
+    if (!user || user.role !== "ADMIN") {
+      alert("Access denied");
+      window.location.href = "index.html";
+    } else {
+      document.getElementById("username").innerText = user.name;
+    }
+
+    function loadComplaints() {
+      fetch(`http://localhost:8080/api/complaints`, {
+        headers: {
+          "Authorization": "Bearer " + sessionStorage.getItem("token"),
+          "Content-Type": "application/json"
+        }
+      })
+        .then(res => res.json())
+        .then(complaints => {
+          const container = document.getElementById("complaintList");
+          container.innerHTML = "";
+          complaints.forEach(c => {
+            container.innerHTML += `
+              <div class="complaint-card">
+                <h4>${c.title}</h4>
+                <p>${c.description}</p>
+                <small>Status: <span class="status-${c.status.toLowerCase()}">${c.status}</span></small><br>
+                <div class="nav-buttons">
+                  <button onclick="updateStatus(${c.id}, 'Resolved')">Mark Resolved</button>
+                  <button onclick="deleteComplaint(${c.id})" class="logout-btn">Delete</button>
+                </div>
+              </div>`;
+          });
+        });
+    }
+
+    function updateStatus(id, status) {
+      fetch(`http://localhost:8080/api/complaints/${id}?status=${status}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": "Bearer " + sessionStorage.getItem("token"),
+          "Content-Type": "application/json"
+        }
+      }).then(() => loadComplaints());
+    }
+
+    function deleteComplaint(id) {
+      fetch(`http://localhost:8080/api/complaints/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": "Bearer " + sessionStorage.getItem("token"),
+          "Content-Type": "application/json"
+        }
+      }).then(() => loadComplaints());
+    }
+
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "index.html";
+    }
+
+    loadComplaints();
+  </script>
+</body>
+</html>
